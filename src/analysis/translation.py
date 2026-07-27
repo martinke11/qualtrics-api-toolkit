@@ -7,13 +7,7 @@ Created on Fri Nov 17 12:35:12 2023
 """
 import pandas as pd
 import numpy as np
-import json
-import datetime
-import os
-import QualAPI as qa
-import requests
 import re
-from collections import Counter
 from googletrans import Translator
 import time
 import emoji
@@ -22,28 +16,20 @@ import httpx
 import nltk
 # nltk.download('all') # nltk.download('vader_lexicon')
 from textblob import TextBlob
-import QualAPI as qa
-from config import (
-    set_project_directory,
-    get_qualtrics_credentials_path
+import src.qual_api as qa
+from src.utils import (
+    QUALTRICS_CREDS,
+    get_token
 )
 
 warnings.simplefilter(action='ignore', category=pd.errors.PerformanceWarning)
 warnings.simplefilter(action='ignore', category=pd.errors.DtypeWarning)
 pd.options.mode.chained_assignment = None 
 
-PROJECT_DIRECTORY = set_project_directory()
-print("Working directory changed to:", PROJECT_DIRECTORY)
-
-QUALTRICS_CREDENTIALS_PATH = get_qualtrics_credentials_path()
-print("Qualtrics credentials path:", QUALTRICS_CREDENTIALS_PATH)
-with open(QUALTRICS_CREDENTIALS_PATH) as f:
-    qualtrics_creds = json.load(f)
-
 # Extract client ID, secret, and data center from credentials
-client_id = qualtrics_creds.get('ID')
-client_secret = qualtrics_creds.get('Secret')
-data_center = qualtrics_creds.get('DataCenter')
+client_id = QUALTRICS_CREDS.get('ID')
+client_secret = QUALTRICS_CREDS.get('Secret')
+data_center = QUALTRICS_CREDS.get('DataCenter')
 base_url = f'https://{data_center}.qualtrics.com'
 
 # Define survey name and set up parameters for token request
@@ -53,7 +39,7 @@ scope = 'read:surveys read:survey_responses'
 data = qa.return_kwargs_as_dict(grant_type=grant_type, scope=scope)
 
 # Get the bearer token
-bearer_token_response = qa.get_token(base_url, client_id, client_secret, data)
+bearer_token_response = get_token(base_url, client_id, client_secret, data)
 token = bearer_token_response.get("access_token")
 
 # Retrieve the list of surveys and find the survey ID
@@ -83,7 +69,7 @@ df = responses_df.loc[:, question_df['question_id'].tolist()]
 
 # Identify rows with all NaN values to filter them out
 nan_mask = df.isna()
-keep_mask = np.array(nan_mask.sum(axis=1) < len(df.columns))
+keep_mask = np.array(nan_mask.sum(axis=1) < len(df.columns)) # type: ignore
 df = df.loc[keep_mask].reset_index(drop=True)
 
 ###############################################################################
@@ -209,8 +195,7 @@ def translate_seperate_text_df(df, col, translator):
 
 
 timeout = httpx.Timeout(120) 
-translator = Translator(timeout=timeout)
-translator.raise_Exception = True
+translator = Translator(timeout=timeout, raise_exception=True)
 
 translated_data_full = text_df.copy()
 for col in free_text_columns:
@@ -257,8 +242,7 @@ def translate_replace_full_df(df, col, translator):
     return df
 
 timeout = httpx.Timeout(120) 
-translator = Translator(timeout=timeout)
-translator.raise_Exception = True
+translator = Translator(timeout=timeout, raise_exception=True)
 
 for col in free_text_columns:
     print(col, ": there are", df[col].count(), "non null entries to translate.")

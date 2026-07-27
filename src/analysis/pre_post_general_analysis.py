@@ -10,33 +10,15 @@ import numpy as np
 import matplotlib.pyplot as plt
 from docx import Document
 from docx.shared import Inches
-from docx.shared import Pt
-import json
-import datetime
-import os
 from io import BytesIO
-import requests
-from docx.enum.text import WD_ALIGN_PARAGRAPH
-import re
 from collections import Counter
-import QualAPI as qa
-from config import (
-    set_project_directory,
-    get_qualtrics_credentials_path
-)
-
-PROJECT_DIRECTORY = set_project_directory()
-print("Working directory changed to:", PROJECT_DIRECTORY)
-
-QUALTRICS_CREDENTIALS_PATH = get_qualtrics_credentials_path()
-print("Qualtrics credentials path:", QUALTRICS_CREDENTIALS_PATH)
-with open(QUALTRICS_CREDENTIALS_PATH) as f:
-    qualtrics_creds = json.load(f)
+import src.qual_api as qa
+from src.utils import QUALTRICS_CREDS, get_token
 
 # Extract client ID, secret, and data center from credentials
-client_id = qualtrics_creds.get('ID')
-client_secret = qualtrics_creds.get('Secret')
-data_center = qualtrics_creds.get('DataCenter')
+client_id = QUALTRICS_CREDS.get('ID')
+client_secret = QUALTRICS_CREDS.get('Secret')
+data_center = QUALTRICS_CREDS.get('DataCenter')
 base_url = f'https://{data_center}.qualtrics.com'
 
 # if one survey and pre and post defined by cutoff date:
@@ -50,7 +32,7 @@ scope = 'read:surveys read:survey_responses'
 data = qa.return_kwargs_as_dict(grant_type=grant_type, scope=scope)
 
 # Get the bearer token
-bearer_token_response = qa.get_token(base_url, client_id, client_secret, data)
+bearer_token_response = get_token(base_url, client_id, client_secret, data)
 token = bearer_token_response.get('access_token')
 
 # Retrieve the list of all available surveys (to find our two IDs)
@@ -89,7 +71,7 @@ df = responses_df.loc[:, question_df['question_id'].tolist()]
 
 # Identify rows with all NaN values and filter them out
 nan_mask = df.isna()
-keep_mask = np.array(nan_mask.sum(axis=1) < len(df.columns))
+keep_mask = np.array(nan_mask.sum(axis=1) < len(df.columns)) # type: ignore
 df = df.loc[keep_mask].reset_index(drop=True)
 
 cutoff_date = "2024-01-01"  # <-- adjust as needed
@@ -114,11 +96,11 @@ post_df = post_df.loc[:, question_df['question_id'].tolist()]
 
 # Re-check for NaN rows in each subset
 nan_mask_pre = pre_df.isna()
-keep_mask_pre = np.array(nan_mask_pre.sum(axis=1) < len(pre_df.columns))
+keep_mask_pre = np.array(nan_mask_pre.sum(axis=1) < len(pre_df.columns)) # type: ignore
 pre_df = pre_df.loc[keep_mask_pre].reset_index(drop=True)
 
 nan_mask_post = post_df.isna()
-keep_mask_post = np.array(nan_mask_post.sum(axis=1) < len(post_df.columns))
+keep_mask_post = np.array(nan_mask_post.sum(axis=1) < len(post_df.columns)) # type: ignore
 post_df = post_df.loc[keep_mask_post].reset_index(drop=True)
 
 ###############################################################################
@@ -155,7 +137,7 @@ pre_df = pre_responses_df.loc[:, pre_question_df['question_id'].tolist()]
 
 # Identify rows with all NaN values to filter them out
 nan_mask_pre = pre_df.isna()
-keep_mask_pre = np.array(nan_mask_pre.sum(axis=1) < len(pre_df.columns))
+keep_mask_pre = np.array(nan_mask_pre.sum(axis=1) < len(pre_df.columns)) # type: ignore
 pre_df = pre_df.loc[keep_mask_pre].reset_index(drop=True)
 
 ###############################################################################
@@ -192,7 +174,7 @@ post_df = post_responses_df.loc[:, post_question_df['question_id'].tolist()]
 
 # Identify rows with all NaN values to filter them out
 nan_mask_post = post_df.isna()
-keep_mask_post = np.array(nan_mask_post.sum(axis=1) < len(post_df.columns))
+keep_mask_post = np.array(nan_mask_post.sum(axis=1) < len(post_df.columns)) # type: ignore
 post_df = post_df.loc[keep_mask_post].reset_index(drop=True)
 
 ###############################################################################

@@ -10,42 +10,27 @@ import numpy as np
 import matplotlib.pyplot as plt
 from docx import Document
 from docx.shared import Inches
-from docx.shared import Pt
-import json
-import datetime
 from fuzzywuzzy import fuzz 
-from fuzzywuzzy import process
 import re
 from unidecode import unidecode
-import os
 from io import BytesIO
-import requests
-from docx.enum.text import WD_ALIGN_PARAGRAPH
 import re
 from collections import Counter
-import QualAPI as qa
-from config import (
-    set_project_directory,
-    get_qualtrics_credentials_path
+import src.qual_api as qa
+from src.utils import (
+    QUALTRICS_CREDS,
+    get_token
 )
-
-PROJECT_DIRECTORY = set_project_directory()
-print("Working directory changed to:", PROJECT_DIRECTORY)
-
-QUALTRICS_CREDENTIALS_PATH = get_qualtrics_credentials_path()
-print("Qualtrics credentials path:", QUALTRICS_CREDENTIALS_PATH)
-with open(QUALTRICS_CREDENTIALS_PATH) as f:
-    qualtrics_creds = json.load(f)
-    
+  
 pd.set_option('display.max_rows', None)  # Display all rows
 pd.set_option('display.max_columns', None)  # Display all columns
 pd.set_option('display.max_colwidth', None)  # Display full column content
 pd.set_option('display.width', 1000)  # Set a large width for the display
 
 # Extract client ID, secret, and data center from credentials
-client_id = qualtrics_creds.get('ID')
-client_secret = qualtrics_creds.get('Secret')
-data_center = qualtrics_creds.get('DataCenter')
+client_id = QUALTRICS_CREDS.get('ID')
+client_secret = QUALTRICS_CREDS.get('Secret')
+data_center = QUALTRICS_CREDS.get('DataCenter')
 base_url = f'https://{data_center}.qualtrics.com'
 
 # if one survey and pre and post defined by cutoff date:
@@ -56,7 +41,7 @@ scope = 'read:surveys read:survey_responses'
 data = qa.return_kwargs_as_dict(grant_type=grant_type, scope=scope)
 
 # Get the bearer token
-bearer_token_response = qa.get_token(base_url, client_id, client_secret, data)
+bearer_token_response = get_token(base_url, client_id, client_secret, data)
 token = bearer_token_response.get('access_token')
 
 # Retrieve the list of all available surveys (to find our two IDs)
