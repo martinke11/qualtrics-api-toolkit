@@ -1,0 +1,52 @@
+[build-system]
+requires = ["setuptools>=77.0.3"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "qualtrics-api-toolkit"
+version = "0.1.0"
+description = "Qualtrics API automation and analysis tools"
+readme = "README.md"
+requires-python = ">=3.12"
+license = "MIT"
+license-files = ["LICENSE"]
+
+authors = [
+    {name = "Kieran Martin"}
+]
+
+classifiers = [
+    "Development Status :: 3 - Alpha",
+    "Intended Audience :: Developers",
+    "Programming Language :: Python :: 3",
+    "Programming Language :: Python :: 3 :: Only",
+    "Programming Language :: Python :: 3.12",
+]
+
+dependencies = [
+    "emoji",
+    "fuzzywuzzy",
+    "googletrans",
+    "matplotlib",
+    "nltk",
+    "pandas",
+    "python-docx",
+    "requests",
+    "textblob",
+    "tqdm",
+    "Unidecode",
+]
+
+[project.optional-dependencies]
+dev = [
+    "pytest",
+    "pytest-cov",
+    "black",
+    "flake8"
+]
+
+[tool.setuptools.packages.find]
+where = ["src"]
+
+[tool.setuptools.package-dir]
+"" = "src"

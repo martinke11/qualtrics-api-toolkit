@@ -12,8 +12,11 @@ from docx import Document
 from docx.shared import Inches
 from io import BytesIO
 from collections import Counter
-import src.qual_api as qa
-from src.utils import QUALTRICS_CREDS, get_token
+import qualtrics_api_toolkit.qual_api as qa
+from qualtrics_api_toolkit.utils import (
+    QUALTRICS_CREDS,
+    get_token,
+)
 
 # Extract client ID, secret, and data center from credentials
 client_id = QUALTRICS_CREDS.get('ID')

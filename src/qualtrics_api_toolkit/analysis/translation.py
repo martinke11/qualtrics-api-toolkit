@@ -16,10 +16,10 @@ import httpx
 import nltk
 # nltk.download('all') # nltk.download('vader_lexicon')
 from textblob import TextBlob
-import src.qual_api as qa
-from src.utils import (
+import qualtrics_api_toolkit.qual_api as qa
+from qualtrics_api_toolkit.utils import (
     QUALTRICS_CREDS,
-    get_token
+    get_token,
 )
 
 warnings.simplefilter(action='ignore', category=pd.errors.PerformanceWarning)

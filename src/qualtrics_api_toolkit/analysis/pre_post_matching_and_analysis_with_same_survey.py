@@ -16,10 +16,10 @@ from unidecode import unidecode
 from io import BytesIO
 import re
 from collections import Counter
-import src.qual_api as qa
-from src.utils import (
+import qualtrics_api_toolkit.qual_api as qa
+from qualtrics_api_toolkit.utils import (
     QUALTRICS_CREDS,
-    get_token
+    get_token,
 )
   
 pd.set_option('display.max_rows', None)  # Display all rows

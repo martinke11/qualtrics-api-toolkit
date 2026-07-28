@@ -20,23 +20,16 @@ import requests
 from docx.enum.text import WD_ALIGN_PARAGRAPH
 import re
 from collections import Counter
-from config import (
-    set_project_directory,
-    get_qualtrics_credentials_path
+import qualtrics_api_toolkit.qual_api as qa
+from qualtrics_api_toolkit.utils import (
+    QUALTRICS_CREDS,
+    get_token,
 )
-
-PROJECT_DIRECTORY = set_project_directory()
-print("Working directory changed to:", PROJECT_DIRECTORY)
-
-QUALTRICS_CREDENTIALS_PATH = get_qualtrics_credentials_path()
-print("Qualtrics credentials path:", QUALTRICS_CREDENTIALS_PATH)
-with open(QUALTRICS_CREDENTIALS_PATH) as f:
-    qualtrics_creds = json.load(f)
     
 # Extract client ID, secret, and data center from credentials
-client_id = qualtrics_creds.get('ID')
-client_secret = qualtrics_creds.get('Secret')
-data_center = qualtrics_creds.get('DataCenter')
+client_id = QUALTRICS_CREDS.get('ID')
+client_secret = QUALTRICS_CREDS.get('Secret')
+data_center = QUALTRICS_CREDS.get('DataCenter')
 base_url = f'https://{data_center}.qualtrics.com'
 
 # Define survey name and set up parameters for token request

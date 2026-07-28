@@ -4,13 +4,14 @@ Created on Fri Oct 25 10:17:57 2024
 
 @author: kieranmartin
 """
-import pandas as pd
 import numpy as np
-import src.qual_api as qa
-from src.utils import (
+import pandas as pd
+import qualtrics_api_toolkit.qual_api as qa
+from qualtrics_api_toolkit.utils import (
     QUALTRICS_CREDS,
-    get_token
+    get_token,
 )
+
 
 # Extract client ID, secret, and data center from credentials
 client_id = QUALTRICS_CREDS.get('ID')
@@ -19,7 +20,7 @@ data_center = QUALTRICS_CREDS.get('DataCenter')
 base_url = f'https://{data_center}.qualtrics.com'
 
 # Define survey name and set up parameters for token request
-survey_name = "Spring 2024 COPA People's Academy: Post-Participation Survey"
+survey_name = ""
 grant_type = 'client_credentials'
 scope = 'read:surveys read:survey_responses'
 data = qa.return_kwargs_as_dict(grant_type=grant_type, scope=scope)
