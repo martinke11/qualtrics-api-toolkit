@@ -1,5 +1,49 @@
 import requests
 
+# Directory Contacts:
+def list_opted_out_mailing_list_contacts(
+        base_url, 
+        token, 
+        directory_id, 
+        mailing_list_id, 
+        page_size=50, 
+        skip_token=None, 
+        since=None
+):
+    """
+    Retrieves a list of opted-out contacts in a specified mailing list.
+
+    Args:
+        base_url (str): Qualtrics base URL.
+        token (str): OAuth2 bearer token with `read:mailing_list_contacts` scope.
+        directory_id (str): Directory ID (POOL_...).
+        mailing_list_id (str): Mailing List ID (CG_...).
+        page_size (int): Number of contacts to retrieve per page (default: 50).
+        skip_token (str): Token for pagination (default: None).
+        since (str): Date-time string to filter opted-out contacts (optional).
+
+    Returns:
+        dict: JSON response containing opted-out contacts.
+    """
+    endpoint_url = f"{base_url}/API/v3/directories/{directory_id}/mailinglists/{mailing_list_id}/optedOutContacts"
+    params = {
+        "pageSize": page_size,
+        "skipToken": skip_token,
+        "since": since
+    }
+    headers = {
+        "Authorization": f"Bearer {token}",
+        "Accept": "application/json"
+    }
+
+    response = requests.get(
+        endpoint_url, 
+        headers=headers, 
+        params={k: v for k, v in params.items() if v is not None}
+    )
+    return response.json()
+
+
 def list_contacts_in_mailing_list(
         base_url, 
         token, 
@@ -179,47 +223,6 @@ def list_bounced_mailing_list_contacts(
     return response.json()
 
 
-def list_opted_out_mailing_list_contacts(
-        base_url, 
-        token, 
-        directory_id, 
-        mailing_list_id, 
-        page_size=50, 
-        skip_token=None, 
-        since=None
-):
-    """
-    Retrieves a list of opted-out contacts in a specified mailing list.
-
-    Args:
-        base_url (str): Qualtrics base URL.
-        token (str): OAuth2 bearer token with `read:mailing_list_contacts` scope.
-        directory_id (str): Directory ID (POOL_...).
-        mailing_list_id (str): Mailing List ID (CG_...).
-        page_size (int): Number of contacts to retrieve per page (default: 50).
-        skip_token (str): Token for pagination (default: None).
-        since (str): Date-time string to filter opted-out contacts (optional).
-
-    Returns:
-        dict: JSON response containing opted-out contacts.
-    """
-    endpoint_url = f"{base_url}/API/v3/directories/{directory_id}/mailinglists/{mailing_list_id}/optedOutContacts"
-    params = {
-        "pageSize": page_size,
-        "skipToken": skip_token,
-        "since": since
-    }
-    headers = {
-        "Authorization": f"Bearer {token}",
-        "Accept": "application/json"
-    }
-
-    response = requests.get(
-        endpoint_url, 
-        headers=headers, 
-        params={k: v for k, v in params.items() if v is not None}
-    )
-    return response.json()
 
 
 def get_mailing_list_contact(
