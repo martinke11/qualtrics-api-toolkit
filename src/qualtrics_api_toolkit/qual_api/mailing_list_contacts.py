@@ -1,21 +1,20 @@
 import requests
 
 # Mailing List Contacts:
-    
 def create_contact_in_mailing_list(
-        base_url, 
-        token, 
-        directory_id, 
-        mailing_list_id, 
-        first_name, 
-        last_name, 
-        email, 
-        phone=None, 
-        ext_ref=None, 
-        embedded_data=None, 
-        private_embedded_data=None, 
-        language=None, 
-        unsubscribed=False
+    base_url, 
+    token, 
+    directory_id, 
+    mailing_list_id, 
+    first_name, 
+    last_name, 
+    email, 
+    phone=None, 
+    ext_ref=None, 
+    embedded_data=None, 
+    private_embedded_data=None, 
+    language=None, 
+    unsubscribed=False
 ):
     """
     Creates a contact in a specified mailing list.
@@ -38,7 +37,11 @@ def create_contact_in_mailing_list(
     Returns:
         dict: JSON response containing the created contact's ID.
     """
-    endpoint_url = f"{base_url}/API/v3/directories/{directory_id}/mailinglists/{mailing_list_id}/contacts"
+    endpoint_url = (
+        f"{base_url}/API/v3"
+        f"/directories/{directory_id}"
+        f"/mailinglists/{mailing_list_id}/contacts"
+    )
     data = {
         "firstName": first_name,
         "lastName": last_name,
@@ -64,13 +67,13 @@ def create_contact_in_mailing_list(
 
 
 def list_contacts_in_mailing_list(
-        base_url, 
-        token, 
-        directory_id, 
-        mailing_list_id, 
-        page_size=50, 
-        skip_token=None, 
-        include_embedded=False
+    base_url, 
+    token, 
+    directory_id, 
+    mailing_list_id, 
+    page_size=50, 
+    skip_token=None, 
+    include_embedded=False
 ):
     """
     Retrieves a list of contacts in a specified mailing list.
@@ -87,7 +90,11 @@ def list_contacts_in_mailing_list(
     Returns:
         dict: JSON response containing contacts and pagination info.
     """
-    endpoint_url = f"{base_url}/API/v3/directories/{directory_id}/mailinglists/{mailing_list_id}/contacts"
+    endpoint_url = (
+        f"{base_url}/API/v3"
+        f"/directories/{directory_id}"
+        f"/mailinglists/{mailing_list_id}/contacts"
+    )
     params = {
         "pageSize": page_size,
         "includeEmbedded": 'true' if include_embedded else 'false'
@@ -106,13 +113,13 @@ def list_contacts_in_mailing_list(
 
 
 def list_bounced_mailing_list_contacts(
-        base_url, 
-        token, 
-        directory_id, 
-        mailing_list_id, 
-        page_size=50, 
-        skip_token=None, 
-        since=None
+    base_url, 
+    token, 
+    directory_id, 
+    mailing_list_id, 
+    page_size=50, 
+    skip_token=None, 
+    since=None
 ):
     """
     Retrieves a list of bounced contacts in a specified mailing list.
@@ -129,7 +136,11 @@ def list_bounced_mailing_list_contacts(
     Returns:
         dict: JSON response containing bounced contacts.
     """
-    endpoint_url = f"{base_url}/API/v3/directories/{directory_id}/mailinglists/{mailing_list_id}/bouncedContacts"
+    endpoint_url = (
+        f"{base_url}/API/v3"
+        f"/directories/{directory_id}"
+        f"/mailinglists/{mailing_list_id}/bouncedContacts"
+    )
     params = {
         "pageSize": page_size,
         "skipToken": skip_token,
@@ -149,13 +160,13 @@ def list_bounced_mailing_list_contacts(
 
 
 def list_opted_out_mailing_list_contacts(
-        base_url, 
-        token, 
-        directory_id, 
-        mailing_list_id, 
-        page_size=50, 
-        skip_token=None, 
-        since=None
+    base_url, 
+    token, 
+    directory_id, 
+    mailing_list_id, 
+    page_size=50, 
+    skip_token=None, 
+    since=None
 ):
     """
     Retrieves a list of opted-out contacts in a specified mailing list.
@@ -172,7 +183,11 @@ def list_opted_out_mailing_list_contacts(
     Returns:
         dict: JSON response containing opted-out contacts.
     """
-    endpoint_url = f"{base_url}/API/v3/directories/{directory_id}/mailinglists/{mailing_list_id}/optedOutContacts"
+    endpoint_url = (
+        f"{base_url}/API/v3"
+        f"/directories/{directory_id}"
+        f"/mailinglists/{mailing_list_id}/optedOutContacts"
+    )
     params = {
         "pageSize": page_size,
         "skipToken": skip_token,
@@ -193,11 +208,11 @@ def list_opted_out_mailing_list_contacts(
 
 
 def get_mailing_list_contact(
-        base_url, 
-        token, 
-        directory_id, 
-        mailing_list_id, 
-        contact_id
+    base_url, 
+    token, 
+    directory_id, 
+    mailing_list_id, 
+    contact_id
 ):
     """
     Retrieves a specific contact in a mailing list.
@@ -212,7 +227,12 @@ def get_mailing_list_contact(
     Returns:
         dict: JSON response containing contact details.
     """
-    endpoint_url = f"{base_url}/API/v3/directories/{directory_id}/mailinglists/{mailing_list_id}/contacts/{contact_id}"
+    endpoint_url = (
+        f"{base_url}/API/v3"
+        f"/directories/{directory_id}"
+        f"/mailinglists/{mailing_list_id}"
+        f"/contacts/{contact_id}"
+    )
     headers = {
         "Authorization": f"Bearer {token}",
         "Accept": "application/json"
@@ -240,8 +260,9 @@ def get_contact_lookup_id_in_mailing_list(
         f"/contacts/{contact_id}"
     )
     headers = {
-        "Accept": "application/json",
-        "Authorization": f"Bearer {token}"
+        "Authorization": f"Bearer {token}",
+        "Accept": "application/json"
+        
     }
 
     response = requests.get(endpoint_url, headers=headers)
@@ -263,7 +284,8 @@ def update_mailing_list_contact(
     directory_id, 
     mailing_list_id, 
     contact_id, 
-    **kwargs):
+    **kwargs
+):
     """
     Updates a contact in a mailing list.
 
@@ -278,7 +300,12 @@ def update_mailing_list_contact(
     Returns:
         dict: JSON response containing the update status.
     """
-    endpoint_url = f"{base_url}/API/v3/directories/{directory_id}/mailinglists/{mailing_list_id}/contacts/{contact_id}"
+    endpoint_url = (
+        f"{base_url}/API/v3"
+        f"/directories/{directory_id}"
+        f"/mailinglists/{mailing_list_id}"
+        f"/contacts/{contact_id}"
+    )
     headers = {
         "Authorization": f"Bearer {token}",
         "Content-Type": "application/json"
@@ -291,12 +318,18 @@ def update_mailing_list_contact(
     return response.json()
 
 
-def delete_contact_from_mailing_list(base_url, token, directory_id, mailing_list_id, contact_id):
+def delete_contact_from_mailing_list(
+    base_url, 
+    token, 
+    directory_id, 
+    mailing_list_id, 
+    contact_id
+):
     """
     Deletes a single contact from a specified mailing list.
 
     Args:
-        base_url (str): Qualtrics base URL (e.g., https://{data_center}.qualtrics.com).
+        base_url (str): Qualtrics base URL (https://{data_center}.qualtrics.com).
         token (str): OAuth2 bearer token with `write:mailing_list_contacts` scope.
         directory_id (str): Directory ID (POOL_...).
         mailing_list_id (str): Mailing List ID (CG_...).
@@ -305,7 +338,12 @@ def delete_contact_from_mailing_list(base_url, token, directory_id, mailing_list
     Returns:
         dict: JSON response containing the status of the deletion.
     """
-    endpoint_url = f"{base_url}/API/v3/directories/{directory_id}/mailinglists/{mailing_list_id}/contacts/{contact_id}"
+    endpoint_url = (
+        f"{base_url}/API/v3"
+        f"/directories/{directory_id}"
+        f"/mailinglists/{mailing_list_id}"
+        f"/contacts/{contact_id}"
+    )
     headers = {
         "Authorization": f"Bearer {token}",
         "Accept": "application/json"
