@@ -1,5 +1,12 @@
+# -*- coding: utf-8 -*-
+"""
+Created on Tue Aug  4 11:07:04 2026
+
+@author: kieranmartin
+"""
 import requests
 
+# Users:
 def get_list_users(base_url, token):
     """
     Fetches the list of users from the API.
@@ -11,12 +18,16 @@ def get_list_users(base_url, token):
     Returns:
         dict: A JSON object containing the list of users.
     """
-    endpoint_url = '{0}/API/v3/users'.format(base_url)
+    endpoint_url = f'{base_url}/API/v3/users'
+    
+    headers = {
+        "Authorization": f"Bearer {token}",
+        "Content-Type": "application/json",
+    }
     
     response = requests.get(
         endpoint_url, 
-        headers={"Content-Type": "application/json",
-                 "Authorization": "Bearer " + token}
+        headers=headers
     ) 
     
     # Convert the data into a more readable format
@@ -24,16 +35,20 @@ def get_list_users(base_url, token):
     return response
 
 
-# Missing create_user
+def create_user():
+    return
 
 
-# Missing get_user
+def get_user():
+    return
 
 
-# Missing delete_user
+def delete_user():
+    return
 
 
-# Missing update_user
+def update_user():
+    return
 
 
 # "Who Am I" Endpoint
@@ -48,10 +63,26 @@ def get_user_identity(base_url, token):
     Returns:
         dict: User identity information.
     """
-    identity_url = '{0}/API/v3/whoami'.format(base_url)
+    endpoint_url = f'{base_url}/API/v3/whoami'
+    
+    headers = {
+        "Authorization": f"Bearer {token}",
+        "Content-Type": "application/json",
+    }
+    
     response = requests.get(
-        identity_url,
-        headers={"Content-Type": "application/json",
-                 "Authorization": "Bearer " + token}
+        endpoint_url,
+        headers=headers
     )
     return response.json()
+
+
+# Users API Tokens
+def get_user_api_token():
+    return
+
+def update_user_api_token():
+    return
+
+def create_userUapi_token():
+    return

@@ -1,5 +1,17 @@
+# -*- coding: utf-8 -*-
+"""
+Created on Tue Aug  4 11:07:04 2026
+
+@author: kieranmartin
+"""
 import requests
 
+# Library Blocks:
+def list_library_blocks():
+    return
+
+
+# Libraries:
 def list_libraries(base_url, token):
     """
     Fetch all libraries available to the caller in Qualtrics.
@@ -28,6 +40,18 @@ def list_libraries(base_url, token):
     except requests.exceptions.RequestException as e:
         raise Exception(f"Error fetching libraries: {e}")
 
+
+# Library Questions
+def list_library_questions():
+    return
+
+
+# Library Surveys:
+def list_library_surveys():
+    return
+
+
+# Library Messages:
 def list_library_messages(base_url, token, library_id, category=None, offset=0):
     """
     Fetch all messages from a specified library in Qualtrics.
@@ -68,7 +92,14 @@ def list_library_messages(base_url, token, library_id, category=None, offset=0):
         raise Exception(f"Error fetching library messages: {e}")
 
 
-def create_library_message(base_url, token, library_id, description, category, messages):
+def create_library_message(
+    base_url, 
+    token, 
+    library_id, 
+    description, 
+    category, 
+    messages
+):
     """
     Creates a new message in a specified Qualtrics library.
 
@@ -87,17 +118,7 @@ def create_library_message(base_url, token, library_id, description, category, m
                          Example: {"en": "Example English message.", "pt-br": "Mensagem em Português."}
 
     Returns:
-        dict: JSON response from the Qualtrics API. Example structure:
-              {
-                  "result": {
-                      "id": "string"  # The newly created message ID
-                  },
-                  "meta": {
-                      "httpStatus": "string",
-                      "requestId": "string",
-                      "notice": "string"
-                  }
-              }
+        dict: JSON response from the Qualtrics API. 
     """
     endpoint_url = f"{base_url}/API/v3/libraries/{library_id}/messages"
 
@@ -107,17 +128,14 @@ def create_library_message(base_url, token, library_id, description, category, m
         "messages": messages
     }
 
-    # Set the request headers, including the OAuth2 Bearer token
     headers = {
+        "Authorization": f"Bearer {token}",
         "Accept": "application/json",
-        "Content-Type": "application/json",
-        "Authorization": f"Bearer {token}"
+        "Content-Type": "application/json"
+        
     }
 
-    # Execute the POST request
     response = requests.post(endpoint_url, headers=headers, json=payload)
-    
-    # Return the JSON response
     return response.json()
 
 
@@ -133,40 +151,25 @@ def get_library_message(base_url, token, library_id, message_id):
         message_id (str): The Qualtrics Message ID (e.g., 'MS_67890abcxyz').
 
     Returns:
-        dict: JSON response from the Qualtrics API. Example structure:
-              {
-                  "result": {
-                      "category": "string",
-                      "description": "string",
-                      "messages": {
-                        "property1": "string",
-                        "property2": "string"
-                      }
-                  },
-                  "meta": {
-                      "httpStatus": "string",
-                      "requestId": "string",
-                      "notice": "string"
-                  }
-              }
+        dict: JSON response from the Qualtrics API. 
     """
-    # Construct the endpoint URL
-    endpoint_url = f"{base_url}/API/v3/libraries/{library_id}/messages/{message_id}"
-    
-    # Prepare the request headers, including the OAuth2 Bearer token
+    endpoint_url = (
+        f"{base_url}/API/v3/libraries/{library_id}"
+        f"/messages/{message_id}"
+    )
     headers = {
-        "Accept": "application/json",
-        "Authorization": f"Bearer {token}"
+        "Authorization": f"Bearer {token}",
+        "Accept": "application/json"
     }
 
-    # Execute the GET request
     response = requests.get(endpoint_url, headers=headers)
     response.raise_for_status()  # (Optional) Raise HTTPError for bad responses
     return response.json()
 
 
 def update_library_message(
-        base_url, token, 
+        base_url, 
+        token, 
         library_id, 
         description, 
         category, 
@@ -174,25 +177,53 @@ def update_library_message(
         message_id
 ):
     """
+    Updates a library message
     """
-    # Construct the endpoint URL
-    endpoint_url = f"{base_url}/API/v3/libraries/{library_id}/messages/{message_id}"
-    
-    # Prepare the request payload
+    endpoint_url = (
+        f"{base_url}/API/v3/libraries/{library_id}"
+        f"/messages/{message_id}"
+    )
     payload = {
         "description": description,
         "messages": messages
     }
 
-    # Set the request headers, including the OAuth2 Bearer token
     headers = {
+        "Authorization": f"Bearer {token}",
         "Accept": "application/json",
-        "Content-Type": "application/json",
-        "Authorization": f"Bearer {token}"
+        "Content-Type": "application/json"
     }
 
-    # Execute the POST request
     response = requests.put(endpoint_url, headers=headers, json=payload)
-    
-    # Return the JSON response
     return response.json()
+
+
+def delete_library_message(
+        base_url, 
+        token, 
+        library_id, 
+        category, 
+        message_id
+):
+    """
+    Deletes a message from a library
+    """
+    endpoint_url = (
+        f"{base_url}/API/v3/libraries/{library_id}"
+        f"/messages/{message_id}"
+    )
+    headers = {
+        "Authorization": f"Bearer {token}",
+        "Accept": "application/json"
+    }
+
+    response = requests.delete(endpoint_url, headers=headers)
+    return response.json()
+
+
+# Library Graphics:
+def upload_graphic():
+    return
+
+def delete_graphic():
+    return

@@ -1,63 +1,85 @@
+# -*- coding: utf-8 -*-
+"""
+Created on Tue Aug 11 09:57:25 2026
+
+@author: kieranmartin
+"""
 import requests
 import pandas as pd
 import numpy as np
 import re
 
-def clean_responses(responses_df, question_df):
-    """
-    Extracts columns with questions from responses_df, removes rows with all
-    NaN values in those columns, and resets the index.
-    
-    Parameters:
-    responses_df (pd.DataFrame): DataFrame containing survey responses.
-    question_df (pd.DataFrame): DataFrame containing questions, with a 
-                                'question_id' column.
-    
-    Returns:
-    pd.DataFrame: Cleaned DataFrame with rows containing all NaN values removed 
-                  and index reset.
-    """
-    # Extract only columns with questions
-    df = responses_df.loc[:, question_df['question_id'].tolist()]
-
-    # Find rows with all NaN values in question columns
-    nan_mask = df.isna()
-    keep_mask = np.array(nan_mask.sum(axis=1) < len(df.columns))
-
-    # Filter responses_df based on keep_mask and reset index
-    responses_df = responses_df.loc[keep_mask, :].reset_index(drop=True)
-    
-    return responses_df
-
-
-def export_survey_responses(base_url, token, survey_id):
+# Survey Responses --> Surveys/Response Import/Export API --> Response Exports
+def start_response_export(base_url, token, survey_id):
     """
     Initiates the export of survey responses from Qualtrics.
 
     Args:
         base_url (str): The base URL for the Qualtrics API.
         access_token (str): The bearer access token for API authorization.
-        survey_id (str): The unique ID of the survey whose responses are to be exported.
+        survey_id (str): The unique ID of the survey whose responses are to be 
+                         exported.
 
     Returns:
-        dict: A JSON-formatted response containing the export details, such as progress and file ID.
+        dict: A JSON-formatted response containing the export details, such as 
+              progress and file ID.
     """
     # Set the survey export URL
-    survey_export_url = '{0}/API/v3/surveys/{1}/export-responses'.format(base_url, survey_id)
+    endpoint_url = f'{base_url}/API/v3/surveys/{survey_id}/export-responses'
+    headers = {
+        "Authorization": f"Bearer {token}",
+        "Content-Type": "application/json",
+    }
     # Pull the survey data
-    response = requests.post(survey_export_url, 
-                             headers={"Content-Type": "application/json",
-                                      "Authorization": "Bearer " + token},
-                             data='{"format": "json", "compress": false}')
+    response = requests.post(
+        endpoint_url, 
+        headers=headers,
+        data='{"format": "json", "compress": false}'
+    )
     # Convert the data into a more readable format
     response = response.json()    
     return response
 
 
+def get_response_export_progress(base_url, token, survey_id, export_progress_id):
+    """
+    Checks the progress of an ongoing survey response export.
+
+    Args:
+        base_url (str): The base URL for the Qualtrics API.
+        access_token (str): The bearer access token for API authorization.
+        survey_id (str): The unique ID of the survey whose responses are being 
+                         exported.
+        export_progress_id (str): Export progressId returned by the start export 
+        call. unique ID representing the current export progress. 
+
+    Returns:
+        dict: A JSON-formatted response indicating the progress status and 
+        completion percentage.
+    """
+    endpoint_url = (
+        f"{base_url}/API/v3/surveys/{survey_id}"
+        f"/export-responses/{export_progress_id}"
+    )
+    headers = {
+        "Authorization": f"Bearer {token}",
+        "Content-Type": "application/json",
+    }
+    
+    response = requests.get(
+        endpoint_url, 
+        headers=headers
+    )
+    response = response.json()    
+    return response
+
+
+# helper function for calling get_response_export_progress
 def wait_for_export_completion(base_url, token, survey_id, export_progress_id):
     """
     Waits for the survey response export to complete by checking its progress.
-
+    Helper function for calling get_response_export_progress.
+    
     Args:
         base_url (str): The base URL for the Qualtrics API.
         token (str): The API token used for authorization.
@@ -77,7 +99,8 @@ def wait_for_export_completion(base_url, token, survey_id, export_progress_id):
             base_url, 
             token, 
             survey_id, 
-            export_progress_id)
+            export_progress_id
+        )
 
         # Check if the export is 100% complete
         if response_export_progress.get('result').get('percentComplete') == 100:
@@ -91,32 +114,7 @@ def wait_for_export_completion(base_url, token, survey_id, export_progress_id):
     return file_id
 
 
-def get_response_export_progress(base_url, access_token, survey_id, export_progress_id):
-    """
-    Checks the progress of an ongoing survey response export.
-
-    Args:
-        base_url (str): The base URL for the Qualtrics API.
-        access_token (str): The bearer access token for API authorization.
-        survey_id (str): The unique ID of the survey whose responses are being 
-                         exported.
-        export_progress_id (str): The unique ID representing the current export 
-                                  progress.
-
-    Returns:
-        dict: A JSON-formatted response indicating the progress status and completion percentage.
-    """
-    export_progress_url = '{0}/API/v3/surveys/{1}/export-responses/{2}'.format(base_url, survey_id, export_progress_id)
-    # Pull the survey data
-    response = requests.get(export_progress_url, 
-                            headers={"Content-Type": "application/json",
-                                     "Authorization": "Bearer " + access_token})
-    # Convert the data into a more readable format
-    response = response.json()    
-    return response
-
-
-def get_survey_responses(base_url, access_token, survey_id, file_id):
+def get_response_export_file(base_url, token, survey_id, file_id):
     """
     Downloads the survey responses after the export process is complete.
 
@@ -130,60 +128,31 @@ def get_survey_responses(base_url, access_token, survey_id, file_id):
     Returns:
         requests.Response: The HTTP response containing the survey responses file.
     """
-    file_download_url = '{0}/API/v3/surveys/{1}/export-responses/{2}/file'.format(base_url, survey_id, file_id)
-    # Pull the survey data
-    response = requests.get(file_download_url, 
-                            headers={"Content-Type": "application/json",
-                                     "Authorization": "Bearer " + access_token})
+    endpoint_url = (
+        f"{base_url}/API/v3/surveys/{survey_id}"
+        f"/export-responses/{file_id}/file"
+    )
+    
+    headers = {
+        "Authorization": f"Bearer {token}",
+        "Content-Type": "application/json",
+    }
+    
+    response = requests.get(
+        endpoint_url, 
+        headers=headers
+    )
+    
     return response
 
 
-def extract_and_organize_responses(survey_responses):
-    """
-    Extracts and organizes survey responses from the JSON response.
-
-    Args:
-        survey_responses (requests.Response): The response object from the 
-                                              survey responses export.
-
-    Returns:
-        pd.DataFrame or None: A DataFrame containing the organized responses, 
-                              or None if no responses are available.
-    """
-    # Convert the response content to JSON
-    survey_responses_json = survey_responses.json()
-    
-    # Extract the list of responses
-    responses = survey_responses_json.get('responses', [])
-    
-    if len(responses) > 0:
-        # Organize the responses using qa's organize_responses function
-        responses_df = organize_responses(responses)
-        return responses_df
-    else:
-        print('There is no data')
-        return None
-    
-
-def filter_preview_responses(responses_df):
-    """
-    Filters out survey preview responses from the responses DataFrame and 
-    resets the index.
-    
-    Parameters:
-    responses_df (pd.DataFrame): DataFrame containing survey responses with a 
-                                'distributionChannel' column.
-    
-    Returns:
-    pd.DataFrame: Filtered DataFrame with preview responses removed and index reset.
-    """
-    # Do not keep survey preview responses
-    keep_mask = np.array(responses_df['distributionChannel'] != 'preview')
-    filtered_df = responses_df.loc[keep_mask, :].reset_index(drop=True)
-    
-    return filtered_df
+def get_list_of_available_filters():
+    '''
+    '''
+    return
 
 
+###############################################
 def organize_responses(responses):
     """
     Organize survey responses into a structured DataFrame.
@@ -268,4 +237,79 @@ def organize_responses(responses):
     final_results_df = pd.concat([non_question_df, question_df_sorted], axis=1)
     
     return final_results_df
+
+
+def extract_and_organize_responses(survey_responses):
+    """
+    Extracts and organizes survey responses from the JSON response.
+
+    Args:
+        survey_responses (requests.Response): The response object from the 
+                                              survey responses export.
+
+    Returns:
+        pd.DataFrame or None: A DataFrame containing the organized responses, 
+                              or None if no responses are available.
+    """
+    # Convert the response content to JSON
+    survey_responses_json = survey_responses.json()
+    
+    # Extract the list of responses
+    responses = survey_responses_json.get('responses', [])
+    
+    if len(responses) > 0:
+        # Organize the responses using qa's organize_responses function
+        responses_df = organize_responses(responses)
+        return responses_df
+    else:
+        print('There is no data')
+        return None
+    
+
+def filter_preview_responses(responses_df):
+    """
+    Filters out survey preview responses from the responses DataFrame and 
+    resets the index.
+    
+    Parameters:
+    responses_df (pd.DataFrame): DataFrame containing survey responses with a 
+                                'distributionChannel' column.
+    
+    Returns:
+    pd.DataFrame: Filtered DataFrame with preview responses removed and index reset.
+    """
+    # Do not keep survey preview responses
+    keep_mask = np.array(responses_df['distributionChannel'] != 'preview')
+    filtered_df = responses_df.loc[keep_mask, :].reset_index(drop=True)
+    
+    return filtered_df
+
+
+def clean_responses(responses_df, question_df):
+    """
+    Extracts columns with questions from responses_df, removes rows with all
+    NaN values in those columns, and resets the index.
+    
+    Parameters:
+    responses_df (pd.DataFrame): DataFrame containing survey responses.
+    question_df (pd.DataFrame): DataFrame containing questions, with a 
+                                'question_id' column.
+    
+    Returns:
+    pd.DataFrame: Cleaned DataFrame with rows containing all NaN values removed 
+                  and index reset.
+    """
+    # Extract only columns with questions
+    df = responses_df.loc[:, question_df['question_id'].tolist()]
+
+    # Find rows with all NaN values in question columns
+    nan_mask = df.isna()
+    keep_mask = np.array(nan_mask.sum(axis=1) < len(df.columns))
+
+    # Filter responses_df based on keep_mask and reset index
+    responses_df = responses_df.loc[keep_mask, :].reset_index(drop=True)
+    
+    return responses_df
+
+
 

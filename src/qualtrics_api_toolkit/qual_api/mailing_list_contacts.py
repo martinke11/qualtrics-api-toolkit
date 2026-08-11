@@ -1,3 +1,9 @@
+# -*- coding: utf-8 -*-
+"""
+Created on Tue Aug  4 11:07:04 2026
+
+@author: kieranmartin
+"""
 import requests
 
 # Mailing List Contacts:
@@ -353,5 +359,6 @@ def delete_contact_from_mailing_list(
     return response.json()
 
 
-# Mailing List Contact History
-# get_contact_history_mailing_list
+# Mailing List Contact History:
+def get_contact_history_mailing_list():
+    return

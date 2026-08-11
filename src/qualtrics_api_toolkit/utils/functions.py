@@ -1,3 +1,9 @@
+# -*- coding: utf-8 -*-
+"""
+Created on Tue Aug  4 11:07:04 2026
+
+@author: kieranmartin
+"""
 import os
 import json
 import requests

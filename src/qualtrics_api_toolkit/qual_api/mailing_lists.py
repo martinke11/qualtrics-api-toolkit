@@ -1,3 +1,9 @@
+# -*- coding: utf-8 -*-
+"""
+Created on Tue Aug  4 11:07:04 2026
+
+@author: kieranmartin
+"""
 import requests
 
 def list_mailing_lists(
@@ -35,7 +41,11 @@ def list_mailing_lists(
         "Accept": "application/json"
     }
 
-    response = requests.get(endpoint_url, headers=headers, params=params)
+    response = requests.get(
+        endpoint_url, 
+        headers=headers, 
+        params=params
+    )
     return response.json()
 
 
@@ -75,7 +85,11 @@ def create_mailing_list(
         "Content-Type": "application/json"
     }
 
-    response = requests.post(endpoint_url, headers=headers, json=data)
+    response = requests.post(
+        endpoint_url, 
+        headers=headers, 
+        json=data
+    )
     return response.json()
 
 
@@ -113,7 +127,11 @@ def get_mailing_list(
         "Accept": "application/json"
     }
 
-    response = requests.get(endpoint_url, headers=headers, params=params)
+    response = requests.get(
+        endpoint_url, 
+        headers=headers, 
+        params=params
+    )
     return response.json()
 
 
@@ -202,5 +220,8 @@ def delete_mailing_list(
         "Accept": "application/json"
     }
 
-    response = requests.delete(endpoint_url, headers=headers)
+    response = requests.delete(
+        endpoint_url, 
+        headers=headers
+    )
     return response.json()
