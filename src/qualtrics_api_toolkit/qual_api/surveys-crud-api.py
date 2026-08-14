@@ -66,61 +66,6 @@ def get_survey_questions(base_url, token, survey_id):
     return survey_question_dictionary
 
 
-def get_block_data(base_url, survey_id, token):
-    """
-    Fetches survey data from the Qualtrics API, extracts block names and their 
-    associated questions, and returns a DataFrame with the ordered blocks and 
-    question IDs.
-
-    Args:
-        base_url (str): The base URL for the Qualtrics API.
-        survey_id (str): The unique ID of the survey to fetch.
-        token (str): The API token for authentication.
-
-    Returns:
-        blocks_df (pd.DataFrame): A DataFrame with Block Name and Question ID 
-                                 columns.
-    """
-    endpoint_url = f'{base_url}/API/v3/surveys/{survey_id}'
-    headers = {
-        "Authorization": f"Bearer {token}"
-    }
-    response = requests.get(
-        endpoint_url, 
-        headers=headers
-    )
-    if response.status_code != 200:
-        raise Exception(
-            f"Failed to fetch survey data: {response.status_code}, {response.text}"
-        )
-    
-    survey_question_dictionary = response.json()
-
-    survey_result = survey_question_dictionary.get('result', {})
-    blocks = survey_result.get('blocks', {})
-    flow = survey_result.get('flow', [])
-
-    # Process the survey flow to get ordered blocks
-    ordered_blocks = process_survey_flow(flow, blocks)
-
-    blocks_df = pd.DataFrame(ordered_blocks)
-
-    return blocks_df
-
-
-def extract_block_details(block_id, blocks):
-    """
-    Extract details for a single block given its ID.
-    Returns a list of dictionaries containing block name and question IDs.
-    """
-    block_details = blocks.get(block_id, {})
-    block_name = block_details.get('description', 'No Description')
-    elements = block_details.get('elements', [])
-    question_ids = [element['questionId'] for element in elements if element['type'] == 'Question']
-
-    return [{'Block Name': block_name, 'Question ID': question_id} for question_id in question_ids]
-
-
 def process_survey_flow(flow_items, blocks):
     """
     Process the flow structure of the survey, handling both blocks and branches.
@@ -136,6 +81,78 @@ def process_survey_flow(flow_items, blocks):
             # Recursively process nested flow:
             ordered_blocks.extend(process_survey_flow(nested_flow, blocks)) 
     return ordered_blocks
+
+def extract_block_details(block_id, blocks):
+    """
+    Extract details for a single block given its ID.
+    Returns a list of dictionaries containing block name and question IDs.
+    """
+    block_details = blocks.get(block_id, {})
+    block_name = block_details.get('description', 'No Description')
+    elements = block_details.get('elements', [])
+    question_ids = [element['questionId'] for element in elements if element['type'] == 'Question']
+
+    return [{'Block Name': block_name, 'Question ID': question_id} for question_id in question_ids]
+
+
+def get_block_data(survey_questions):
+    """
+    Fetches survey data from the Qualtrics API, extracts block names and their 
+    associated questions, and returns a DataFrame with the ordered blocks and 
+    question IDs.
+
+    Args:
+        base_url (str): The base URL for the Qualtrics API.
+        survey_id (str): The unique ID of the survey to fetch.
+        token (str): The API token for authentication.
+
+    Returns:
+        blocks_df (pd.DataFrame): A DataFrame with Block Name and Question ID 
+                                 columns.
+    """
+    blocks = survey_questions.get('blocks', {})
+    flow = survey_questions.get('flow', [])
+    ordered_blocks = process_survey_flow(flow, blocks)
+    blocks_df = pd.DataFrame(ordered_blocks)
+    return blocks_df
+
+def reorder_question_df_with_normalized_ids(question_df, blocks_df, drop_na=False):
+    """
+    Reorders the question_df DataFrame to match the Question ID order in blocks_df,
+    creating a separate column for normalized Question IDs.
+
+    Args:
+        question_df (pd.DataFrame): DataFrame containing question metadata.
+        blocks_df (pd.DataFrame): DataFrame with ordered Block Names and Question IDs.
+
+    Returns:
+        pd.DataFrame: A reordered question_df DataFrame.
+    """
+    # Add a separate column for normalized IDs
+    question_df['normalized_id'] = question_df['question_id'].str.extract(r'^(QID\d+)')
+    
+    # Merge blocks_df with question_df based on the normalized ID
+    merged_df = blocks_df.merge(
+        question_df, 
+        how='left', 
+        left_on='Question ID', 
+        right_on='normalized_id'
+    )
+    
+    # Drop unnecessary columns and reorder
+    reordered_question_df = merged_df.drop(
+        columns=['normalized_id']
+        ).reset_index(drop=True)
+
+    if drop_na:
+        reordered_question_df = (
+            reordered_question_df
+            .dropna()
+            .reset_index(drop=True)
+        )
+        
+    return reordered_question_df
+
 
 
 def get_survey_list(base_url, token):
