@@ -7,10 +7,9 @@ Created on Tue Aug  4 11:07:04 2026
 import pandas as pd
 import numpy as np
 import re
-#from .utils import create_question_dataframes
-from .survey import get_full_survey_info
 
 ###############################################
+# get_response_export_file 
 def organize_responses(responses):
     """
     Organize survey responses into a structured DataFrame.
@@ -36,7 +35,12 @@ def organize_responses(responses):
     
     # Reorder the columns: first non-question columns, then question columns
     column_names = responses_df.columns
-    question_columns = [col for col in column_names if col.startswith('QID')]
+    # do not include FIRST_CLICK, LAST_CLICK, CLICK_COUNT or PAGE_SUBMIT from Timer feature:
+    question_columns = [
+        col for col in column_names
+        if col.startswith('QID')
+      #  and not col.endswith(('CLICK', 'SUBMIT', 'COUNT'))
+    ]
     non_question_columns = list(set(column_names) - set(question_columns))
     
     non_question_df = responses_df.loc[:, np.isin(column_names, non_question_columns)]
@@ -141,12 +145,62 @@ def filter_preview_responses(responses_df):
     filtered_df = responses_df.loc[keep_mask, :].reset_index(drop=True)
     
     return filtered_df
+##########################################################################
+# get_survey_questions
+def extract_block_details(block_id, blocks):
+    """
+    Extract details for a single block given its ID.
+    Returns a list of dictionaries containing block name and question IDs.
+    """
+    block_details = blocks.get(block_id, {})
+    block_name = block_details.get('description', 'No Description')
+    elements = block_details.get('elements', [])
+    question_ids = [element['questionId'] for element in elements if element['type'] == 'Question']
+
+    return [{'Block Name': block_name, 'Question ID': question_id} for question_id in question_ids]
 
 
+def process_survey_flow(flow_items, blocks):
+    """
+    Process the flow structure of the survey, handling both blocks and branches.
+    Returns a list of dictionaries with block name and question IDs in the order 
+    they appear.
+    """
+    ordered_blocks = []
+    for flow_item in flow_items:
+        if flow_item.get('type') == 'Block':  # Standard block
+            block_id = flow_item.get('id')
+            ordered_blocks.extend(extract_block_details(block_id, blocks))
+        elif flow_item.get('type') == 'Branch':  # Nested branch
+            nested_flow = flow_item.get('flow', [])
+            # Recursively process nested flow:
+            ordered_blocks.extend(process_survey_flow(nested_flow, blocks)) 
+    return ordered_blocks
+
+
+def get_block_data(survey_questions):
+    """
+    Fetches survey data from the Qualtrics API, extracts block names and their 
+    associated questions, and returns a DataFrame with the ordered blocks and 
+    question IDs.
+
+    Args:
+        base_url (str): The base URL for the Qualtrics API.
+        survey_id (str): The unique ID of the survey to fetch.
+        token (str): The API token for authentication.
+
+    Returns:
+        blocks_df (pd.DataFrame): A DataFrame with Block Name and Question ID 
+                                 columns.
+    """
+    blocks = survey_questions.get('blocks', {})
+    flow = survey_questions.get('flow', [])
+    ordered_blocks = process_survey_flow(flow, blocks)
+    blocks_df = pd.DataFrame(ordered_blocks)
+    return blocks_df
 
 
 ###############################################################################
-
 def is_numeric(current_question):
     """
     Checks if a question should be treated as numeric based on type or 
@@ -435,7 +489,6 @@ def create_question_dataframes(
         "question_selector": np.array(question_selector_list)[np.array(keep_question_list)],
         "is_numeric": np.array(is_numeric_list)[np.array(keep_question_list)]
     })
-    
     question_values_df = pd.DataFrame({
         "question_id": long_text_id_list,
         "question_value": question_value_list,
@@ -443,141 +496,6 @@ def create_question_dataframes(
     }).astype(str)
     
     return question_df, question_values_df
-
-
-def create_data_type_dictionary(question_df, question_values_df):
-    """
-    Creates a dictionary of data types for the questions and adds the 
-    corresponding data types to the question DataFrame.
-    
-    Args:
-        question_df (pd.DataFrame): DataFrame containing the questions' metadata.
-        question_values_df (pd.DataFrame): DataFrame containing the question 
-                                            values and answer IDs.
-    
-    Returns:
-        pd.DataFrame: The updated question DataFrame with an added 'DataType' column.
-    """    
-    # Get lists of the Free Text columns
-    mask = (
-        np.array(question_df['question_type'] == 'TE')
-        & np.array(question_df['is_numeric'] is False)
-    )
-    free_text_columns = set(question_df['question_id'][mask])
-
-    # FileUpload columns
-    file_upload_columns = set(
-        question_df['question_id'][
-            question_df['question_type'] == 'FileUpload'
-        ]
-    )
-
-    # Get list of Meta columns (categorical but without predefined categories)
-    meta_columns = set(
-        question_df['question_id'][
-            question_df['question_type'] == 'Meta'
-        ]
-    )
-
-    # Get lists of the Draw columns (often signatures)
-    draw_columns = set(
-        question_df['question_id'][
-            question_df['question_type'] == 'Draw'
-        ]
-    )
-
-    # Frequency Plots (Multiple Choice questions)
-    multiple_choice_columns = set(question_values_df['question_id'])
-
-    # Timing columns (tracks page times)
-    timing_columns = set(
-        question_df['question_id'][
-            question_df['question_type'] == 'Timing'
-        ]
-    )
-
-    # Date columns
-    date_columns = set(
-        question_df['question_id'][
-            question_df['question_type'] == 'SBS'
-        ]
-    )
-
-    # Rank Order columns
-    rank_order_columns = set(
-        question_df['question_id'][
-            question_df['question_type'] == 'RO'
-        ]
-    )
-
-    # Group columns for questions and responses
-    group_columns = set(
-        question_df['question_id'][
-            question_df['question_type'] == 'PGR'
-        ]
-    )
-
-    # Get the numeric columns
-    # numeric_columns = set(question_df['question_id'][question_df['is_numeric']])
-    numeric_columns = set(
-        question_df['question_id'][
-            question_df['is_numeric']
-            | question_df['question_id'].isin(rank_order_columns)
-        ]
-    )
-    
-    # Create a dictionary of all the different column types
-    column_data_types = {
-        'MultipleChoice': list(multiple_choice_columns),
-        'Numeric': list(numeric_columns),
-        'FreeText': list(free_text_columns),
-        'RankOrder': list(rank_order_columns),
-        'FileUpload': list(file_upload_columns),
-        'Group': list(group_columns),
-        'MetaData': list(meta_columns),
-        'Draw': list(draw_columns),
-        'Timing': list(timing_columns),
-        'Dates': list(date_columns)
-    }
-    
-    # Determine the data type for each question
-    data_type = []
-
-    for question_id, question_type, question_selector in zip(
-            question_df['question_id'],
-            question_df['question_type'],
-            question_df['question_selector'],
-    ):  
-        # Prioritize Rank Order
-        if question_id in column_data_types.get('RankOrder', []):
-            data_type.append('Numeric')
-        elif question_id in column_data_types.get('Numeric', []):
-            data_type.append('Numeric')
-        elif question_id in column_data_types.get('MultipleChoice', []):
-            data_type.append('MultipleChoice')
-        elif question_id in column_data_types.get('FreeText', []):
-            data_type.append('FreeText')
-        elif question_id in column_data_types.get('FileUpload', []):
-            data_type.append('FileUpload')
-        elif question_id in column_data_types.get('Group', []):
-            data_type.append('Group')
-        elif question_id in column_data_types.get('MetaData', []):
-            data_type.append('MetaData')
-        elif question_id in column_data_types.get('Draw', []):
-            data_type.append('Draw')
-        elif question_id in column_data_types.get('Timing', []):
-            data_type.append('Timing')
-        elif question_id in column_data_types.get('Dates', []):
-            data_type.append('Dates')
-        elif question_type == 'Matrix' and question_selector == 'Likert':
-            data_type.append('MultipleChoice')  # Assign 'MatrixLikert' type for Matrix-Likert questions
-        else:
-            data_type.append('Unknown')  # Default data type
-
-    # Add the determined data types to the question DataFrame
-    question_df['data_type'] = data_type
-    return question_df
-
 
 
 def extract_column_data_types(question_dictionary, responses_df, base_url, token, survey_id):
@@ -739,6 +657,177 @@ def extract_column_data_types(question_dictionary, responses_df, base_url, token
     
     return question_df, question_values_df
 
+
+def create_data_type_dictionary(question_df, question_values_df):
+    """
+    Creates a dictionary of data types for the questions and adds the 
+    corresponding data types to the question DataFrame.
+    
+    Args:
+        question_df (pd.DataFrame): DataFrame containing the questions' metadata.
+        question_values_df (pd.DataFrame): DataFrame containing the question 
+                                            values and answer IDs.
+    
+    Returns:
+        pd.DataFrame: The updated question DataFrame with an added 'DataType' column.
+    """    
+    # Get lists of the Free Text columns
+    mask = (
+        np.array(question_df['question_type'] == 'TE')
+        & np.array(question_df['is_numeric'] == False)
+    )
+    free_text_columns = set(question_df['question_id'][mask])
+
+    # FileUpload columns
+    file_upload_columns = set(
+        question_df['question_id'][
+            question_df['question_type'] == 'FileUpload'
+        ]
+    )
+
+    # Get list of Meta columns (categorical but without predefined categories)
+    meta_columns = set(
+        question_df['question_id'][
+            question_df['question_type'] == 'Meta'
+        ]
+    )
+
+    # Get lists of the Draw columns (often signatures)
+    draw_columns = set(
+        question_df['question_id'][
+            question_df['question_type'] == 'Draw'
+        ]
+    )
+
+    # Frequency Plots (Multiple Choice questions)
+    multiple_choice_columns = set(question_values_df['question_id'])
+
+    # Timing columns (tracks page times)
+    timing_columns = set(
+        question_df['question_id'][
+            question_df['question_type'] == 'Timing'
+        ]
+    )
+
+    # Date columns
+    date_columns = set(
+        question_df['question_id'][
+            question_df['question_type'] == 'SBS'
+        ]
+    )
+
+    # Rank Order columns
+    rank_order_columns = set(
+        question_df['question_id'][
+            question_df['question_type'] == 'RO'
+        ]
+    )
+
+    # Group columns for questions and responses
+    group_columns = set(
+        question_df['question_id'][
+            question_df['question_type'] == 'PGR'
+        ]
+    )
+
+    # Get the numeric columns
+    # numeric_columns = set(question_df['question_id'][question_df['is_numeric']])
+    numeric_columns = set(
+        question_df['question_id'][
+            question_df['is_numeric']
+            | question_df['question_id'].isin(rank_order_columns)
+        ]
+    )
+    
+    # Create a dictionary of all the different column types
+    column_data_types = {
+        'MultipleChoice': list(multiple_choice_columns),
+        'Numeric': list(numeric_columns),
+        'FreeText': list(free_text_columns),
+        'RankOrder': list(rank_order_columns),
+        'FileUpload': list(file_upload_columns),
+        'Group': list(group_columns),
+        'MetaData': list(meta_columns),
+        'Draw': list(draw_columns),
+        'Timing': list(timing_columns),
+        'Dates': list(date_columns)
+    }
+    
+    # Determine the data type for each question
+    data_type = []
+
+    for question_id, question_type, question_selector in zip(
+            question_df['question_id'],
+            question_df['question_type'],
+            question_df['question_selector'],
+    ):  
+        # Prioritize Rank Order
+        if question_id in column_data_types.get('RankOrder', []):
+            data_type.append('Numeric')
+        elif question_id in column_data_types.get('Numeric', []):
+            data_type.append('Numeric')
+        elif question_id in column_data_types.get('MultipleChoice', []):
+            data_type.append('MultipleChoice')
+        elif question_id in column_data_types.get('FreeText', []):
+            data_type.append('FreeText')
+        elif question_id in column_data_types.get('FileUpload', []):
+            data_type.append('FileUpload')
+        elif question_id in column_data_types.get('Group', []):
+            data_type.append('Group')
+        elif question_id in column_data_types.get('MetaData', []):
+            data_type.append('MetaData')
+        elif question_id in column_data_types.get('Draw', []):
+            data_type.append('Draw')
+        elif question_id in column_data_types.get('Timing', []):
+            data_type.append('Timing')
+        elif question_id in column_data_types.get('Dates', []):
+            data_type.append('Dates')
+        elif question_type == 'Matrix' and question_selector == 'Likert':
+            data_type.append('MultipleChoice')  # Assign 'MatrixLikert' type for Matrix-Likert questions
+        else:
+            data_type.append('Unknown')  # Default data type
+
+    # Add the determined data types to the question DataFrame
+    question_df['data_type'] = data_type
+    return question_df
+
+
+def reorder_question_df_with_normalized_ids(question_df, blocks_df, drop_na=False):
+    """
+    Reorders the question_df DataFrame to match the Question ID order in blocks_df,
+    creating a separate column for normalized Question IDs.
+
+    Args:
+        question_df (pd.DataFrame): DataFrame containing question metadata.
+        blocks_df (pd.DataFrame): DataFrame with ordered Block Names and Question IDs.
+
+    Returns:
+        pd.DataFrame: A reordered question_df DataFrame.
+    """
+    # Add a separate column for normalized IDs
+    question_df['normalized_id'] = question_df['question_id'].str.extract(r'^(QID\d+)')
+    
+    # Merge blocks_df with question_df based on the normalized ID
+    merged_df = blocks_df.merge(
+        question_df, 
+        how='left', 
+        left_on='Question ID', 
+        right_on='normalized_id'
+    )
+    
+    # Drop unnecessary columns and reorder
+    reordered_question_df = merged_df.drop(
+        columns=['normalized_id']
+        ).reset_index(drop=True)
+
+    if drop_na:
+        reordered_question_df = (
+            reordered_question_df
+            .dropna()
+            .reset_index(drop=True)
+        )
+        
+    return reordered_question_df
 
 
 def clean_responses(responses_df, question_df):

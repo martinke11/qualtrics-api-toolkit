@@ -1,3 +1,5 @@
+import requests
+
 def return_kwargs_as_dict(**kwargs):
     """
     Returns the keyword arguments as a dictionary.

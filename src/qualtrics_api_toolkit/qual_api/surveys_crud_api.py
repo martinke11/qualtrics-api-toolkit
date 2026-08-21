@@ -6,8 +6,7 @@ Created on Tue Aug 11 09:49:28 2026
 """
 import requests
 import pandas as pd
-
-from src.qual_api.utils import strip_html
+from .utils import strip_html
 import requests
 import pandas as pd
 import numpy as np
@@ -64,95 +63,6 @@ def get_survey_questions(base_url, token, survey_id):
                 question_data['choices'] = strip_html(question_data['choices'])
             
     return survey_question_dictionary
-
-
-def process_survey_flow(flow_items, blocks):
-    """
-    Process the flow structure of the survey, handling both blocks and branches.
-    Returns a list of dictionaries with block name and question IDs in the order they appear.
-    """
-    ordered_blocks = []
-    for flow_item in flow_items:
-        if flow_item.get('type') == 'Block':  # Standard block
-            block_id = flow_item.get('id')
-            ordered_blocks.extend(extract_block_details(block_id, blocks))
-        elif flow_item.get('type') == 'Branch':  # Nested branch
-            nested_flow = flow_item.get('flow', [])
-            # Recursively process nested flow:
-            ordered_blocks.extend(process_survey_flow(nested_flow, blocks)) 
-    return ordered_blocks
-
-def extract_block_details(block_id, blocks):
-    """
-    Extract details for a single block given its ID.
-    Returns a list of dictionaries containing block name and question IDs.
-    """
-    block_details = blocks.get(block_id, {})
-    block_name = block_details.get('description', 'No Description')
-    elements = block_details.get('elements', [])
-    question_ids = [element['questionId'] for element in elements if element['type'] == 'Question']
-
-    return [{'Block Name': block_name, 'Question ID': question_id} for question_id in question_ids]
-
-
-def get_block_data(survey_questions):
-    """
-    Fetches survey data from the Qualtrics API, extracts block names and their 
-    associated questions, and returns a DataFrame with the ordered blocks and 
-    question IDs.
-
-    Args:
-        base_url (str): The base URL for the Qualtrics API.
-        survey_id (str): The unique ID of the survey to fetch.
-        token (str): The API token for authentication.
-
-    Returns:
-        blocks_df (pd.DataFrame): A DataFrame with Block Name and Question ID 
-                                 columns.
-    """
-    blocks = survey_questions.get('blocks', {})
-    flow = survey_questions.get('flow', [])
-    ordered_blocks = process_survey_flow(flow, blocks)
-    blocks_df = pd.DataFrame(ordered_blocks)
-    return blocks_df
-
-def reorder_question_df_with_normalized_ids(question_df, blocks_df, drop_na=False):
-    """
-    Reorders the question_df DataFrame to match the Question ID order in blocks_df,
-    creating a separate column for normalized Question IDs.
-
-    Args:
-        question_df (pd.DataFrame): DataFrame containing question metadata.
-        blocks_df (pd.DataFrame): DataFrame with ordered Block Names and Question IDs.
-
-    Returns:
-        pd.DataFrame: A reordered question_df DataFrame.
-    """
-    # Add a separate column for normalized IDs
-    question_df['normalized_id'] = question_df['question_id'].str.extract(r'^(QID\d+)')
-    
-    # Merge blocks_df with question_df based on the normalized ID
-    merged_df = blocks_df.merge(
-        question_df, 
-        how='left', 
-        left_on='Question ID', 
-        right_on='normalized_id'
-    )
-    
-    # Drop unnecessary columns and reorder
-    reordered_question_df = merged_df.drop(
-        columns=['normalized_id']
-        ).reset_index(drop=True)
-
-    if drop_na:
-        reordered_question_df = (
-            reordered_question_df
-            .dropna()
-            .reset_index(drop=True)
-        )
-        
-    return reordered_question_df
-
 
 
 def get_survey_list(base_url, token):
@@ -221,6 +131,56 @@ def get_survey_list(base_url, token):
     survey_list_df = survey_list_df.reset_index(drop=True)
     
     return survey_list_df
+
+
+import tkinter as tk
+from tkinter import ttk
+
+
+def select_survey(survey_list_df):
+    """
+    Display a popup dropdown for selecting a survey.
+
+    Parameters
+    ----------
+    survey_list_df : pd.DataFrame
+        DataFrame containing available survey names.
+
+    Returns
+    -------
+    str
+        The name of the selected survey.
+    """
+    root = tk.Tk()
+    root.title("Select Survey")
+    root.geometry("500x120")
+
+    survey_name = tk.StringVar()
+
+    tk.Label(
+        root,
+        text="Select a survey:"
+    ).pack(pady=(10, 5))
+
+    survey_dropdown = ttk.Combobox(
+        root,
+        textvariable=survey_name,
+        values=survey_list_df["name"].tolist(),
+        state="readonly",
+        width=60
+    )
+    survey_dropdown.pack(pady=5)
+    survey_dropdown.current(0)
+
+    tk.Button(
+        root,
+        text="Select",
+        command=root.destroy
+    ).pack(pady=5)
+
+    root.mainloop()
+
+    return survey_name.get()
 
 
 def get_survey_id_by_name(survey_list_df, survey_name):

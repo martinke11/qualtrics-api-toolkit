@@ -7,8 +7,6 @@ Created on Tue Aug  4 11:07:04 2026
 import requests
 import pandas as pd
 
-from src.qual_api.utils import strip_html
-
 # Qualtrics Survey API --> Surveys
 def create_survey():
     return
